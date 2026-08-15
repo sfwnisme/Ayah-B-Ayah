@@ -1,13 +1,25 @@
 <!doctype html>
-<!-- Backdrop page for generating the 1280x800 Chrome Web Store screenshots.
-     Not shipped in the extension package. Serve the project root and open
-     /store/stage.html; the live popup renders inside the iframe. -->
+<!-- Backdrop page for the 1280x800 Chrome Web Store screenshots. Not shipped
+     in the extension package.
+
+     One scene per screenshot, chosen with ?scene=<key> (see SCENES below); the
+     live popup renders inside the iframe, so a shot can never drift from the
+     real UI. Drive it with: node scripts/make-screenshots.mjs -->
 <html dir="rtl" lang="ar">
   <head>
     <meta charset="UTF-8" />
     <title>لقطات المتجر</title>
     <style>
+      :root {
+        --brand: #0f766e;
+        --brand-deep: #0b5751;
+        --ink: #14342c;
+        --ink-soft: #3d5f57;
+        --paper: #f3faf6;
+      }
+
       * { box-sizing: border-box; }
+
       body {
         margin: 0;
         width: 1280px;
@@ -16,38 +28,223 @@
         align-items: center;
         justify-content: center;
         gap: 72px;
-        font-family: "Amiri Quran", "Geeza Pro", serif;
-        background: linear-gradient(160deg, #f3faf6 0%, #d7ece3 55%, #bfe0d5 100%);
+        font-family: "KFGQPC Uthman Taha Naskh", "Amiri Quran", "Geeza Pro", serif;
+        background:
+          radial-gradient(1100px 620px at 88% -12%, #ffffff 0%, rgba(255, 255, 255, 0) 60%),
+          linear-gradient(152deg, #eaf6f1 0%, #d3e9e0 48%, #b9dccf 100%);
         overflow: hidden;
+        position: relative;
       }
-      .pitch { max-width: 420px; color: #14342c; }
-      .pitch h1 { font-size: 52px; margin: 0 0 10px; color: #0f766e; }
-      .pitch p.tag { font-size: 24px; margin: 0 0 28px; color: #1c3a32; }
-      .pitch ul { list-style: none; padding: 0; margin: 0; font-size: 20px; line-height: 2.1; }
-      .pitch li::before { content: "◈ "; color: #0f766e; }
-      .frame {
+
+      /* faint concentric rings, echoing a mushaf frame without competing with it */
+      body::before,
+      body::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid rgba(15, 118, 110, 0.13);
+        pointer-events: none;
+      }
+      body::before { width: 760px; height: 760px; top: -230px; right: -210px; }
+      body::after { width: 520px; height: 520px; bottom: -190px; left: -140px; }
+
+      /* ---- pitch column ---- */
+      .pitch { width: 484px; position: relative; z-index: 2; }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        padding: 7px 14px 7px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(15, 118, 110, 0.18);
+        color: var(--brand);
+        font-size: 17px;
+      }
+      .eyebrow img { width: 20px; height: 20px; }
+
+      .pitch h1 {
+        margin: 0 0 14px;
+        font-size: 44px;
+        line-height: 1.45;
+        text-wrap: balance;
+        color: var(--brand);
+      }
+
+      .pitch p.tag {
+        margin: 0 0 30px;
+        font-size: 22px;
+        line-height: 1.75;
+        color: var(--ink-soft);
+      }
+
+      .pitch ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.6;
+        color: var(--ink);
+      }
+      .pitch li {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        margin-bottom: 15px;
+      }
+      .pitch li::before {
+        content: "◈";
+        color: var(--brand);
+        font-size: 15px;
+        line-height: 1.9;
+      }
+
+      /* ---- popup column: a browser frame so the popup reads as a popup ---- */
+      .device { position: relative; z-index: 2; flex-shrink: 0; }
+
+      .browser {
         width: 546px;
-        height: 546px;
-        border-radius: 18px;
+        border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 24px 60px rgba(15, 118, 110, 0.35);
-        background: #f3faf6;
-        flex-shrink: 0;
+        background: #ffffff;
+        box-shadow:
+          0 2px 6px rgba(15, 60, 52, 0.08),
+          0 30px 70px rgba(11, 87, 81, 0.32);
       }
-      .frame iframe { width: 546px; height: 546px; border: none; }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        background: #f2f6f5;
+        border-bottom: 1px solid #e2ebe8;
+        direction: ltr; /* browser chrome itself is LTR */
+      }
+      .dots { display: flex; gap: 6px; }
+      .dots i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #d3dedb;
+        display: block;
+      }
+      .omnibox {
+        flex: 1;
+        height: 22px;
+        border-radius: 11px;
+        background: #e7efec;
+      }
+      .ext-slot {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #dcebe5;
+        outline: 2px solid rgba(15, 118, 110, 0.35);
+      }
+      .ext-slot img { width: 20px; height: 20px; }
+
+      /* the popup body is a fixed 420x420; scale it to fill the 546px frame
+         rather than sizing the iframe, which would just anchor the 420px body
+         to the RTL start edge and leave a gap */
+      .frame { width: 546px; height: 546px; overflow: hidden; background: var(--paper); }
+      .frame iframe {
+        width: 420px;
+        height: 420px;
+        border: none;
+        transform: scale(1.3);
+        transform-origin: top right;
+      }
     </style>
   </head>
   <body>
     <div class="pitch">
-      <h1>قرآن — آية بآية</h1>
-      <p class="tag">اقرأ القرآن الكريم آيةً آية من متصفحك</p>
-      <ul>
-        <li>يحفظ آخر موضع قراءة تلقائيًا</li>
-        <li>بحث بالسورة والآية دون تشكيل</li>
-        <li>يعمل دون اتصال بالإنترنت</li>
-        <li>خفيف ولا يجمع أي بيانات</li>
-      </ul>
+      <span class="eyebrow"><img src="/icons/icon48.png" alt="" /><b id="eyebrow"></b></span>
+      <h1 id="headline"></h1>
+      <p class="tag" id="tagline"></p>
+      <ul id="bullets"></ul>
     </div>
-    <div class="frame"><iframe src="/popup.html"></iframe></div>
+
+    <div class="device">
+      <div class="browser">
+        <div class="toolbar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="omnibox"></div>
+          <div class="ext-slot"><img src="/icons/icon48.png" alt="" /></div>
+        </div>
+        <div class="frame"><iframe src="/popup.html"></iframe></div>
+      </div>
+    </div>
+
+    <script>
+      // One entry per store screenshot. scripts/make-screenshots.mjs owns the
+      // matching popup state (position, font size, which modal is open).
+      const SCENES = {
+        reading: {
+          eyebrow: "القراءة",
+          headline: "آيةٌ واحدة في كل مرة",
+          tagline: "افتح الملحق من شريط الأدوات، واقرأ في الدقائق المتفرقة من يومك.",
+          bullets: [
+            "بخط مجمع الملك فهد «عثمان طه» النسخي",
+            "اسم السورة ورقم الآية والجزء أمامك دائمًا",
+            "يحفظ آخر موضع قراءة تلقائيًا",
+          ],
+        },
+        picker: {
+          eyebrow: "الاختيار والبحث",
+          headline: "اذهب إلى أي آية",
+          tagline: "اختر السورة ثم الآية، أو ابحث بالنص كما تكتبه عادةً.",
+          bullets: [
+            "بحث بالاسم أو بالرقم",
+            "بحث بنص الآية دون تشكيل: «الرحمن» تجد «ٱلرَّحْمَٰنِ»",
+            "انتقال فوري إلى الآية المختارة",
+          ],
+        },
+        fontsize: {
+          eyebrow: "حجم الخط",
+          headline: "اقرأ بالحجم المريح لك",
+          tagline: "زرّان في الأعلى يكبّران الخط ويصغّرانه، والقيمة ظاهرة بينهما.",
+          bullets: [
+            "من ١٦ إلى ٤٤ بخطوات واضحة",
+            "يُحفظ اختيارك للمرات القادمة",
+            "الآيات الطويلة تُمرَّر داخل البطاقة",
+          ],
+        },
+        shortcuts: {
+          eyebrow: "لوحة المفاتيح",
+          headline: "اقرأ دون أن ترفع يدك",
+          tagline: "اختصارات لكل شيء، وزر «؟» يعرضها كلها في أي وقت.",
+          bullets: [
+            "«مسافة» لمتابعة القراءة: تمرير ثم انتقال",
+            "الأسهم للتنقل بين الآيات وتمريرها",
+            "«+» و«−» لحجم الخط",
+          ],
+        },
+        privacy: {
+          eyebrow: "خفيف وآمن",
+          headline: "يعمل دون إنترنت",
+          tagline: "النص كامل داخل الملحق: لا اتصال بأي خادم، ولا جمع لأي بيانات.",
+          bullets: [
+            "٦٢٣٦ آية مضمّنة داخل الملحق",
+            "صلاحية واحدة فقط: التخزين المحلي",
+            "لا إعلانات ولا تتبّع ولا حسابات",
+          ],
+        },
+      };
+
+      const key = new URLSearchParams(location.search).get("scene") || "reading";
+      const scene = SCENES[key] ?? SCENES.reading;
+      document.getElementById("eyebrow").textContent = scene.eyebrow;
+      document.getElementById("headline").textContent = scene.headline;
+      document.getElementById("tagline").textContent = scene.tagline;
+      document.getElementById("bullets").innerHTML = scene.bullets
+        .map((b) => `<li>${b}</li>`)
+        .join("");
+    </script>
   </body>
 </html>

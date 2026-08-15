@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const INCLUDE = ["manifest.json", "popup.html", "css", "js", "data", "fonts", "icons"];
-const JUNK = /(^|\/)(\.|__MACOSX|scripts\/|plans\/|store\/|dist\/)|\.md$|(^|\/)_/;
+const JUNK = /(^|\/)(\.|__MACOSX|scripts\/|plans\/|store\/|dist\/)|\.md$|\.ttf$|(^|\/)_/;
 
 const manifest = JSON.parse(readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
 const outDir = path.join(ROOT, "dist");
@@ -20,10 +20,11 @@ mkdirSync(outDir, { recursive: true });
 rmSync(zipPath, { force: true });
 
 // -X: no extra file attributes; -x: belt-and-braces exclusion of OS junk
-execFileSync("zip", ["-r", "-X", zipPath, ...INCLUDE, "-x", "*.DS_Store", "-x", "__MACOSX/*"], {
-  cwd: ROOT,
-  stdio: "pipe",
-});
+execFileSync(
+  "zip",
+  ["-r", "-X", zipPath, ...INCLUDE, "-x", "*.DS_Store", "-x", "__MACOSX/*", "-x", "fonts/*.ttf"],
+  { cwd: ROOT, stdio: "pipe" },
+);
 
 const listing = execFileSync("zipinfo", ["-1", zipPath], { encoding: "utf8" })
   .trim()

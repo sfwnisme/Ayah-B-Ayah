@@ -13,6 +13,45 @@
         <span class="dot">·</span>
         <span id="juz-number"></span>
       </div>
+      <div class="font-size" role="group" aria-label="حجم الخط">
+        <button
+          class="font-size-btn"
+          id="font-smaller-btn"
+          type="button"
+          aria-label="تصغير حجم الخط"
+        >
+          <!-- the أ glyph names what is being resized; its own size previews
+               the direction. aria-hidden so screen readers read the label. -->
+          <span class="fs-glyph fs-glyph-small" aria-hidden="true">أ</span>
+          <span class="fs-sign" aria-hidden="true">−</span>
+        </button>
+        <!-- live readout: aria-live so the new size is announced on change -->
+        <output
+          class="fs-value"
+          id="font-size-value"
+          for="font-smaller-btn font-larger-btn"
+          aria-live="polite"
+        ></output>
+        <button
+          class="font-size-btn"
+          id="font-larger-btn"
+          type="button"
+          aria-label="تكبير حجم الخط"
+        >
+          <span class="fs-glyph fs-glyph-large" aria-hidden="true">أ</span>
+          <span class="fs-sign" aria-hidden="true">+</span>
+        </button>
+      </div>
+      <button
+        class="help-btn"
+        id="help-btn"
+        type="button"
+        aria-label="اختصارات لوحة المفاتيح"
+        title="اختصارات لوحة المفاتيح (؟)"
+        aria-haspopup="dialog"
+      >
+        ؟
+      </button>
     </header>
 
     <main class="ayah-card">
@@ -29,6 +68,42 @@
         التالية ›
       </button>
     </footer>
+
+    <!-- Shortcuts dialog. Static markup (not built in JS like the pickers) so
+         the key list stays readable and translatable in one place. -->
+    <div
+      class="help-overlay"
+      id="help-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="help-title"
+      hidden
+    >
+      <div class="help-modal">
+        <div class="help-head">
+          <span class="help-title" id="help-title">اختصارات لوحة المفاتيح</span>
+          <button class="help-close" id="help-close-btn" type="button" aria-label="إغلاق">
+            ✕
+          </button>
+        </div>
+        <dl class="help-list">
+          <dt><kbd>←</kbd></dt>
+          <dd>الآية التالية</dd>
+          <dt><kbd>→</kbd></dt>
+          <dd>الآية السابقة</dd>
+          <dt><kbd>مسافة</kbd></dt>
+          <dd>متابعة القراءة: تمرير الآية الطويلة، ثم الانتقال إلى التالية</dd>
+          <dt><kbd>↑</kbd> / <kbd>↓</kbd></dt>
+          <dd>تمرير الآية الطويلة لأعلى / لأسفل</dd>
+          <dt><kbd>+</kbd> / <kbd>−</kbd></dt>
+          <dd>تكبير / تصغير حجم الخط</dd>
+          <dt><kbd>Esc</kbd></dt>
+          <dd>إغلاق النافذة المفتوحة</dd>
+          <dt><kbd>؟</kbd></dt>
+          <dd>عرض هذه القائمة</dd>
+        </dl>
+      </div>
+    </div>
 
     <script type="module" src="js/popup.js"></script>
   </body>

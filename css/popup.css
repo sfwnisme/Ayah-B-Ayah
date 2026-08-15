@@ -1,5 +1,21 @@
-/* Exact "Amiri Quran" v19 files served by fonts.google.com to Chrome,
-   bundled locally — re-download with: node scripts/fetch-font.mjs */
+/* Primary: "KFGQPC Uthman Taha Naskh" v2.0, bundled as woff2
+   (converted from fonts/UthmanTN_v2-0.ttf — see scripts/convert-font.py).
+   Source: King Fahd Glorious Quran Printing Complex,
+   https://fonts.qurancomplex.gov.sa/nashkh-font/
+   NOTE: this face has no glyphs for alef wasla (U+0671) or the Quranic waqf
+   and small-high marks (U+06D6-U+06ED), which appear in 92% of the Uthmani
+   ayahs in data/. Amiri Quran stays bundled below purely as the per-character
+   fallback for those code points, so nothing renders as tofu. */
+@font-face {
+  font-family: "KFGQPC Uthman Taha Naskh";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/uthman-taha-naskh.woff2") format("woff2");
+}
+
+/* Fallback only — exact "Amiri Quran" v19 files served by fonts.google.com to
+   Chrome, bundled locally; re-download with: node scripts/fetch-font.mjs */
 @font-face {
   font-family: "Amiri Quran";
   font-style: normal;
@@ -33,12 +49,16 @@ html {
 }
 
 body {
+  /* set from storage by popup.js before first paint; the literal here is only
+     the pre-hydration fallback and must match DEFAULT_FONT_SIZE in storage.js */
+  --ayah-font-size: 24px;
   margin: 0;
   width: 420px;
   /* height: 100%; */
   height: 420px;
   font-family:
-    "Amiri Quran", "Scheherazade New", "Geeza Pro", "Traditional Arabic", serif;
+    "KFGQPC Uthman Taha Naskh", "Amiri Quran", "Scheherazade New", "Geeza Pro",
+    "Traditional Arabic", serif;
   background: #f3faf6;
   color: #1c3a32;
   direction: rtl;
@@ -55,6 +75,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 14px 16px;
   background: #0f766e;
   color: #f3faf6;
@@ -63,6 +84,7 @@ body {
 .surah-name {
   font-size: 20px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .header-meta {
@@ -71,10 +93,209 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .header-meta .dot {
   opacity: 0.6;
+}
+
+.font-size {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.font-size-btn {
+  /* fixed, identical box: the two buttons hold their place and size no matter
+     which glyph or sign is inside, so the pair never shifts as you click */
+  width: 34px;
+  height: 26px;
+  flex-shrink: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid rgba(243, 250, 246, 0.45);
+  border-radius: 7px;
+  background: rgba(243, 250, 246, 0.12);
+  color: #f3faf6;
+  /* system UI font: the Quranic faces have no +/− glyphs (they'd fall back
+     mid-button and sit off-centre) */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* the أ is the affordance: same letter at two sizes reads as "text size",
+   and each button previews the direction it moves */
+.fs-glyph {
+  font-weight: 700;
+  /* the أ's hamza sits high in the em box, which reads as top-aligned even
+     when the box is centred; nudge the glyph down to centre it optically */
+  line-height: 1;
+  transform: translateY(1px);
+}
+
+.fs-glyph-small {
+  font-size: 10px;
+}
+
+.fs-glyph-large {
+  font-size: 18px;
+}
+
+.fs-sign {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.fs-value {
+  min-width: 26px; /* reserve room for two digits so the buttons never shift */
+  text-align: center;
+  align-self: center;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.font-size-btn:not(:disabled):hover {
+  background: rgba(243, 250, 246, 0.26);
+}
+
+.font-size-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.help-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(243, 250, 246, 0.45);
+  border-radius: 50%;
+  background: rgba(243, 250, 246, 0.12);
+  color: #f3faf6;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help-btn:hover {
+  background: rgba(243, 250, 246, 0.26);
+}
+
+.help-overlay[hidden] {
+  display: none; /* the display: flex below would otherwise defeat [hidden] */
+}
+
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 60, 52, 0.35);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30; /* above the pickers */
+}
+
+.help-modal {
+  width: calc(100% - 36px);
+  max-height: calc(100% - 44px);
+  background: #ffffff;
+  border: 1px solid #bfe0d5;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 118, 110, 0.28);
+  overflow-y: auto;
+}
+
+.help-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e3f1eb;
+}
+
+.help-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.help-close {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: #eaf7f1;
+  color: #0f766e;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.help-close:hover {
+  background: #d7ece3;
+}
+
+/* opening the dialog focuses the close button, so the default blue ring would
+   land on the brand green header — restate it in the palette instead */
+.help-close:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 1px;
+}
+
+.help-btn:focus-visible,
+.font-size-btn:focus-visible {
+  outline: 2px solid #f3faf6;
+  outline-offset: 1px;
+}
+
+/* two columns: key on the right (RTL start), meaning on the left */
+.help-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px 12px;
+  margin: 0;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.help-list dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+.help-list dd {
+  margin: 0;
+  color: #1c3a32;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 24px;
+  padding: 3px 7px;
+  border: 1px solid #bfe0d5;
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #f3faf6;
+  color: #0f766e;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .ayah-card {
@@ -90,14 +311,15 @@ body {
 }
 
 .ayah-text {
-  font-size: 24px;
+  font-size: var(--ayah-font-size);
   line-height: 2;
   margin: 0;
   color: #14342c;
 }
 
 .ayah-marker {
-  font-size: 16px;
+  /* em, so the marker keeps its 2:3 ratio to the ayah at every size */
+  font-size: 0.67em;
   color: #166534;
   font-weight: 600;
 }
