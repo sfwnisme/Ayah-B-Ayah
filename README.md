@@ -2,7 +2,26 @@
 
 A super-light Chrome extension (Manifest V3) that shows **one Quran verse at a time** in the toolbar popup, so you can read in the small pockets of free time during the day. Fully offline, fully RTL Arabic, and it always remembers exactly where you stopped.
 
-![reading view](store/screenshots/screenshot-1-reading.png)
+**[Install from the Chrome Web Store →](https://chromewebstore.google.com/detail/%D9%82%D8%B1%D8%A2%D9%86-%E2%80%94-%D8%A2%D9%8A%D8%A9-%D8%A8%D8%A2%D9%8A%D8%A9/gkdmpdjknkjjcplhblaggcjaljkelchb?hl=ar)**
+
+![reading سورة الكهف on the space bar, then closing the popup and reopening it on the same ayah](store/demo/browser-reading.gif)
+
+A few free minutes on whatever page you were already on: open the popup and read
+down سورة الكهف on the **space bar** alone — it pages through a long ayah, then
+moves to the next one once you have reached its end. Click away and Chrome tears
+the popup down; open it again and you are on the same ayah, restored from local
+storage.
+
+![the full tour: picking a surah by name, jumping to an ayah by its text, sizing it, reading on, and the shortcut sheet](store/demo/browser-tour.gif)
+
+The whole extension in one pass: pick a surah by name, jump to an ayah by typing
+its text **the ordinary way** (`الرقيم`, no tashkeel), size the ayah with **أ+**,
+read on with the space bar, open the shortcut sheet with **؟** — then close and
+reopen to the ayah you stopped at.
+
+Both demos drive the **real popup** in headless Chrome over the DevTools
+protocol; every click and key press is genuine, so they cannot drift from the
+shipped UI (`node scripts/make-gifs.mjs`).
 
 ## The idea
 
@@ -12,7 +31,11 @@ Principles: no framework, no build step, no background worker, no network at run
 
 ## Features, screen by screen
 
-The screenshot above is the reading view: one ayah centred in the card, the surah
+### The reading view
+
+![reading view](store/screenshots/screenshot-1-reading.png)
+
+This is the reading view: one ayah centred in the card, the surah
 name, the ayah-of-total, and the juz across the header, and **التالية / السابقة**
 in the footer. Navigation crosses surah boundaries on its own, and every move is
 saved, so closing the browser mid-surah costs you nothing.
@@ -74,9 +97,9 @@ the device. No accounts, no analytics, no ads.
 | `data/` | Bundled Quran text: `surah-index.json` (114 surah metadata + juz ranges) and `surah/surah_1..114.json` (verse text). Source: [semarketir/quranjson](https://github.com/semarketir/quranjson). |
 | `fonts/` | **Primary** KFGQPC Uthman Taha Naskh v2.0 — source `UthmanTN_v2-0.ttf` (build input only) plus the shipped `uthman-taha-naskh.woff2` (57 KB). Source: [King Fahd Glorious Quran Printing Complex](https://fonts.qurancomplex.gov.sa/nashkh-font/). **Fallback** Amiri Quran v19 woff2 (arabic + latin subsets, 58 KB) — see the font note below. |
 | `icons/` | Extension icons 16/32/48/128, generated (anti-aliased crescent). |
-| `scripts/` | Build-time only, never shipped: `fetch-data.mjs` (download Quran JSON), `convert-font.py` (Uthman Taha TTF → woff2), `fetch-font.mjs` (re-download the Amiri Quran fallback subsets), `make-icons.py` (regenerate icons), `make-screenshots.mjs` (regenerate the store screenshots), `package.mjs` (build + verify the store zip). |
+| `scripts/` | Build-time only, never shipped: `fetch-data.mjs` (download Quran JSON), `convert-font.py` (Uthman Taha TTF → woff2), `fetch-font.mjs` (re-download the Amiri Quran fallback subsets), `make-icons.py` (regenerate icons), `make-screenshots.mjs` (regenerate the store screenshots), `make-gifs.mjs` (record the demo GIFs; needs ffmpeg), `package.mjs` (build + verify the store zip). |
 | `test/e2e.mjs` | 54-check end-to-end suite driving the popup in headless Chrome via the DevTools Protocol (no dependencies). Run instructions in the file header and in `updates/`. |
-| `store/` | Chrome Web Store kit: `LISTING.md` (ready-to-paste dashboard texts), `PRIVACY.md`, `screenshots/` (five 1280×800 PNGs), `stage.html` (the multi-scene screenshot backdrop). |
+| `store/` | Chrome Web Store kit: `LISTING.md` (ready-to-paste dashboard texts), `PRIVACY.md`, `screenshots/` (five 1280×800 PNGs), `stage.html` (the multi-scene screenshot backdrop), `browser.html` (the mock browser window the demo GIFs are recorded in), `demo/` (the recorded GIFs — not part of the submission). |
 | `dist/` | Built submission zip (`node scripts/package.mjs`). |
 | `plans/` | Approved implementation plans, kept in-repo as project history. |
 | `updates/` | Dated deep-dive documents (changes + architecture) for onboarding developers/agents — start with the newest file. |
@@ -126,6 +149,10 @@ behind an open modal.
 
 ## Development
 
+To just use the extension, install the published build from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/%D9%82%D8%B1%D8%A2%D9%86-%E2%80%94-%D8%A2%D9%8A%D8%A9-%D8%A8%D8%A2%D9%8A%D8%A9/gkdmpdjknkjjcplhblaggcjaljkelchb?hl=ar).
+To work on it:
+
 ```bash
 # Load in Chrome: chrome://extensions → Developer mode → Load unpacked → this folder
 
@@ -137,6 +164,10 @@ python3 -m http.server 8749   # then open http://127.0.0.1:8749/popup.html
 # Regenerate the store screenshots (starts its own server + headless Chrome):
 node scripts/make-screenshots.mjs   # → store/screenshots/*.png
 
+# Re-record the demo GIFs (also needs ffmpeg); one demo at a time by key:
+node scripts/make-gifs.mjs                  # → store/demo/*.gif
+node scripts/make-gifs.mjs browser-tour     # just one
+
 # Package for the store:
 node scripts/package.mjs            # → dist/one-quran-v<version>.zip
 ```
@@ -145,6 +176,41 @@ The screenshots render the **live popup** inside `store/stage.html`'s iframe, on
 scene per shot, so they cannot drift from the shipped UI. Re-run the script
 after any visual change; scene copy and popup state live side by side in
 `store/stage.html` (`SCENES`) and `scripts/make-screenshots.mjs` (`SCENES`).
+
+The GIFs work the same way, one demo per entry in `scripts/make-gifs.mjs`
+(`DEMOS`): the `browser-*` demos record `store/browser.html` — a mock browser
+window with the popup opened from its toolbar button — which is the only way to
+show that closing and reopening returns you to the same ayah. Frames are captured
+on a wall-clock loop and handed to ffmpeg with per-frame durations, so playback
+runs at the speed the script actually ran at. `DEMO_TRACE=1` logs every step's
+resulting position, which is how you tell a dropped input apart from a demo that
+scripted the wrong step.
+
+## Resources & credits
+
+Everything the extension is built out of, and where it came from. All three are
+downloaded or converted **once at build time** and committed — the extension
+makes no network request at runtime.
+
+| Resource | What it provides | Licence |
+|---|---|---|
+| [semarketir/quranjson](https://github.com/semarketir/quranjson) | The Quran text — `source/surah.json` (114 surah metadata records + juz ranges) and `source/surah/surah_1..114.json` (6,236 fully-vocalised Uthmani ayahs). Fetched by `scripts/fetch-data.mjs` into `data/`. | MIT |
+| [KFGQPC Uthman Taha Naskh v2.0](https://fonts.qurancomplex.gov.sa/nashkh-font/) — [King Fahd Glorious Quran Printing Complex](https://qurancomplex.gov.sa/), Madinah | The ayah typeface: the same Naskh hand as the Mushaf al-Madinah. The distributed `UthmanTN_v2-0.ttf` is converted to a 57 KB woff2 by `scripts/convert-font.py`; only the woff2 ships. | The Complex's own distribution terms — see their page, not an OSI/OFL licence |
+| [Amiri Quran](https://fonts.google.com/specimen/Amiri+Quran) v19, by Khaled Hosny, via Google Fonts | The fallback typeface, arabic + latin woff2 subsets (58 KB), re-downloadable with `scripts/fetch-font.mjs`. It exists for one reason: Uthman Taha has no glyphs for alef wasla (U+0671) or the Quranic waqf / small-high marks (U+06D6–U+06ED), which occur in **92.5% of the 6,236 ayahs** — see [Fonts](#fonts). | SIL Open Font License 1.1 |
+
+Two caveats worth knowing if you reuse the data: quranjson is MIT-licensed as a
+packaging of the text but **does not name its own upstream edition**, so it is not
+a citable textual source on its own; and the KFGQPC font is free to use under the
+Complex's terms for Quranic typesetting, which is not the same thing as an open
+source licence. Both are restated in [`LICENSE`](LICENSE), so the terms travel
+with the code rather than living only in this README.
+
+**Build-time tooling** (none of it ships, and there are no runtime dependencies —
+no framework, no bundler, no npm packages): Python `fontTools` + `brotli` for the
+woff2 conversion; a dependency-free Python script (`scripts/make-icons.py`) that
+writes the icon PNGs byte by byte with 4× supersampling; headless Chrome driven
+directly over the DevTools Protocol — no Puppeteer — for the E2E suite, the
+screenshots and the GIFs; and ffmpeg to assemble the GIFs.
 
 ## Future work / known issues
 
@@ -163,3 +229,11 @@ after any visual change; scene copy and popup state live side by side in
 ## Privacy
 
 No data collection, no analytics, no network requests. The only stored values are the last-read surah/ayah and the chosen font size, both kept locally on the device. See `store/PRIVACY.md`.
+
+## License
+
+[MIT](LICENSE) for this extension's own code, configuration and documentation.
+The bundled third-party resources keep their own terms — the Quran text is MIT,
+Amiri Quran is under the SIL Open Font License 1.1, and the KFGQPC Uthman Taha
+Naskh font is under the King Fahd Complex's own distribution terms. All three are
+listed in [`LICENSE`](LICENSE) and in [Resources & credits](#resources--credits).
