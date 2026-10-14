@@ -1,0 +1,227 @@
+<!doctype html>
+<!-- Browser backdrop for the animated demos in store/demo/. Not shipped in the
+     extension package.
+
+     A browser window with the popup opened from the toolbar, so a demo shows
+     the extension the way it is actually used: something else on screen, the
+     popup over it, a few minutes of reading. The live popup renders in the
+     iframe at its native 420x420, so a demo can never drift from the real UI.
+
+     The page behind the popup is deliberately an abstract skeleton: grey
+     blocks, no brand, no borrowed content — it stands for "whatever you were
+     looking at" without pretending to be any real site.
+
+     Drive it with: node scripts/make-gifs.mjs browser-reading browser-tour -->
+<html dir="rtl" lang="ar">
+  <head>
+    <meta charset="UTF-8" />
+    <title>عرض المتصفح</title>
+    <style>
+      :root {
+        --brand: #0f766e;
+        --chrome: #dee4e3;
+        --chrome-line: #c7d1cf;
+        --page: #ffffff;
+        --skeleton: #e9eeed;
+        --skeleton-soft: #f1f5f4;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { margin: 0; height: 100%; }
+
+      body {
+        /* the recorder sets the viewport to exactly this size */
+        width: 600px;
+        height: 560px;
+        overflow: hidden;
+        background: #cfd8d6;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      /* ---- browser window ---- */
+      .window {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--page);
+        direction: ltr; /* browser chrome is LTR, like Chrome's own */
+      }
+
+      .tabstrip {
+        height: 36px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        padding: 0 10px;
+        background: var(--chrome);
+      }
+      .traffic { display: flex; gap: 6px; align-self: center; margin-right: 6px; }
+      .traffic i {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #bcc7c5; display: block;
+      }
+      .tab {
+        height: 28px;
+        width: 168px;
+        border-radius: 8px 8px 0 0;
+        background: var(--page);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 10px;
+      }
+      .tab .favicon {
+        width: 12px; height: 12px; border-radius: 3px; background: #c3cecc;
+        flex-shrink: 0;
+      }
+      .tab .title { height: 7px; flex: 1; border-radius: 4px; background: #d7e0de; }
+      .tab.inactive { background: rgba(255, 255, 255, 0.42); width: 130px; }
+
+      .toolbar {
+        height: 44px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        background: var(--page);
+        border-bottom: 1px solid var(--chrome-line);
+      }
+      .nav-glyphs { display: flex; gap: 12px; color: #98a5a2; font-size: 15px; }
+      .omnibox {
+        flex: 1;
+        height: 26px;
+        border-radius: 13px;
+        background: #eef2f1;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+      }
+      .omnibox span { height: 7px; width: 152px; border-radius: 4px; background: #d5dedc; }
+
+      /* the extension's own toolbar button — what a demo clicks to open */
+      .ext-icon {
+        width: 30px; height: 30px; flex-shrink: 0;
+        border: none; padding: 0;
+        border-radius: 8px;
+        background: transparent;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+      }
+      .ext-icon img { width: 20px; height: 20px; }
+      .ext-icon:hover { background: #eaf1ef; }
+      .ext-icon.open { background: #dceae6; }
+
+      /* ---- the page behind: an abstract skeleton, no brand, no content ---- */
+      .page { flex: 1; padding: 26px 30px; overflow: hidden; }
+      .bar { height: 12px; border-radius: 6px; background: var(--skeleton); margin-bottom: 13px; }
+      .bar.head { height: 20px; width: 62%; background: #dfe6e5; margin-bottom: 22px; }
+      .bar.soft { background: var(--skeleton-soft); }
+      .block {
+        height: 108px; border-radius: 12px; background: var(--skeleton-soft);
+        margin: 20px 0;
+      }
+
+      /* ---- the popup, anchored under its toolbar button ---- */
+      .panel {
+        position: absolute;
+        top: 84px;
+        right: 10px; /* under the extension button, as Chrome anchors it */
+        width: 420px;
+        height: 420px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f3faf6;
+        box-shadow:
+          0 1px 3px rgba(15, 60, 52, 0.16),
+          0 18px 46px rgba(11, 87, 81, 0.3);
+        transform-origin: top right;
+        /* closed state; openPopup() below flips these */
+        opacity: 0;
+        transform: scale(0.96) translateY(-6px);
+        pointer-events: none;
+        transition: opacity 130ms ease, transform 130ms ease;
+      }
+      .panel.open {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+      }
+      .panel iframe { width: 420px; height: 420px; border: none; display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="window">
+      <div class="tabstrip">
+        <div class="traffic"><i></i><i></i><i></i></div>
+        <div class="tab"><span class="favicon"></span><span class="title"></span></div>
+        <div class="tab inactive"><span class="favicon"></span><span class="title"></span></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="nav-glyphs"><span>‹</span><span>›</span><span>⟳</span></div>
+        <div class="omnibox"><span></span></div>
+        <button class="ext-icon" id="ext-icon" type="button" aria-label="فتح الملحق">
+          <img src="/icons/icon48.png" alt="" />
+        </button>
+      </div>
+
+      <div class="page" id="page">
+        <div class="bar head"></div>
+        <div class="bar"></div>
+        <div class="bar soft" style="width: 88%"></div>
+        <div class="bar soft" style="width: 94%"></div>
+        <div class="block"></div>
+        <!-- narrow on purpose: the popup panel covers everything right of
+             ~170px, so this is the part of the page a demo can click to dismiss
+             the popup the way clicking away from it does in Chrome -->
+        <div class="bar soft" id="page-aside" style="width: 20%"></div>
+        <div class="bar soft" style="width: 82%"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel"><iframe id="popup" title="قرآن — آية بآية"></iframe></div>
+
+    <script>
+      // Opening and closing mirror Chrome's own behaviour, because that is what
+      // the demos are showing: the popup document is created fresh on every
+      // open (so the reader's saved position is what brings it back to the same
+      // ayah), and clicking the page dismisses it.
+      const panel = document.getElementById("panel");
+      const frame = document.getElementById("popup");
+      const icon = document.getElementById("ext-icon");
+      const POPUP_URL = "/popup.html";
+
+      window.__stage = {
+        openPopup() {
+          // a fresh document each time, exactly as Chrome does
+          frame.src = `${POPUP_URL}?t=${Date.now()}`;
+          panel.classList.add("open");
+          icon.classList.add("open");
+          return new Promise((resolve) => {
+            frame.addEventListener("load", () => resolve(), { once: true });
+          });
+        },
+        closePopup() {
+          panel.classList.remove("open");
+          icon.classList.remove("open");
+          frame.src = "about:blank"; // the popup is torn down, not hidden
+        },
+        isOpen() {
+          return panel.classList.contains("open");
+        },
+      };
+
+      icon.addEventListener("click", () => {
+        if (window.__stage.isOpen()) window.__stage.closePopup();
+        else window.__stage.openPopup();
+      });
+      document.getElementById("page").addEventListener("click", () => {
+        if (window.__stage.isOpen()) window.__stage.closePopup();
+      });
+    </script>
+  </body>
+</html>
